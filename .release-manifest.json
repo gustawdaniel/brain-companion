@@ -1,12 +1,12 @@
 {
   "target": "brain-companion",
   "repo": "gustawdaniel/brain-companion",
-  "monorepo_sha": "f44b01fca50627b38d8cc1fc253c55866aa73dba",
+  "monorepo_sha": "2ba01bea86e0536efc510d8f477e9baad6f1abe9",
   "monorepo_tag": "v2026.11.2",
   "monorepo_ref": "v2026.11.2",
-  "timestamp": "2026-11-09T19:46:58.425748+00:00",
+  "timestamp": "2026-11-09T19:59:13.374962+00:00",
   "files_count": 104,
-  "total_size_bytes": 6206304,
+  "total_size_bytes": 6205704,
   "files": [
     {
       "path": ".gitignore",
@@ -70,8 +70,8 @@
     },
     {
       "path": ".github/workflows/desktop.yml",
-      "size": 4005,
-      "sha256": "0da6d6e6c66a3223863d79a7548a7531555aa2c96c5200c6a47bbe76755a8d14"
+      "size": 3405,
+      "sha256": "e7c2960108ae5ae9f9a82c87313dbf649c2db5428dafe663bec1fc8c32a73e32"
     },
     {
       "path": "src-tauri/.gitignore",
