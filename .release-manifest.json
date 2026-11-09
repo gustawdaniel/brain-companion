@@ -1,12 +1,12 @@
 {
   "target": "brain-companion",
   "repo": "gustawdaniel/brain-companion",
-  "monorepo_sha": "9caf44e79878d89ce7b9b3b1b3c2b94594c58a90",
-  "monorepo_tag": "v2026.11.1",
-  "monorepo_ref": "v2026.11.1",
-  "timestamp": "2026-11-09T17:02:27.304145+00:00",
-  "files_count": 103,
-  "total_size_bytes": 6194913,
+  "monorepo_sha": "f44b01fca50627b38d8cc1fc253c55866aa73dba",
+  "monorepo_tag": "v2026.11.2",
+  "monorepo_ref": "v2026.11.2",
+  "timestamp": "2026-11-09T19:46:58.425748+00:00",
+  "files_count": 104,
+  "total_size_bytes": 6206304,
   "files": [
     {
       "path": ".gitignore",
@@ -35,8 +35,8 @@
     },
     {
       "path": "index.html",
-      "size": 8224,
-      "sha256": "b2eb0323db2bbce76cfb0a88dee3a6a82a26adefa80c31b5701a45309989eb23"
+      "size": 10647,
+      "sha256": "b6295a09e67f2219641b72166ae900d25e09bfc98055ba487f6f20eaab9dfaf4"
     },
     {
       "path": "package-lock.json",
@@ -67,6 +67,11 @@
       "path": "public/favicon.svg",
       "size": 1722,
       "sha256": "7844c497da4b0ed5595ff2bef784b6fbc74995335f795261a968b60f634255c4"
+    },
+    {
+      "path": ".github/workflows/desktop.yml",
+      "size": 4005,
+      "sha256": "0da6d6e6c66a3223863d79a7548a7531555aa2c96c5200c6a47bbe76755a8d14"
     },
     {
       "path": "src-tauri/.gitignore",
@@ -495,8 +500,8 @@
     },
     {
       "path": "src/main.ts",
-      "size": 26089,
-      "sha256": "6a62de31610dc6cb9e981855ba8e5c3cf3e5b0f1202b37821e36589a83ad4dbb"
+      "size": 29305,
+      "sha256": "273bbbb7391a337d4a3c8caaee2859d0223f5cd6b55843a1c4da5a5683c93b6f"
     },
     {
       "path": "src/offlineQueue.ts",
@@ -505,8 +510,8 @@
     },
     {
       "path": "src/styles.css",
-      "size": 17659,
-      "sha256": "5422e07362c7bc145fbc4efd8cf8fb523de3a0f0834a970b8109a9ea8883f2f1"
+      "size": 19406,
+      "sha256": "18f1e536a03ce082d86e5faad458ad2352af4b00edf56287048fb0340ceb63c2"
     },
     {
       "path": "src/assets/tauri.svg",

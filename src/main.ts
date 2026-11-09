@@ -7,6 +7,12 @@ import {
   countOfflineTasks 
 } from "./offlineQueue";
 
+// Adres serwera ustawiany przy budowaniu obrazu (`VITE_BRAIN_SERVER`) — dla
+// instalacji klienta wskazuje jego host w tailnecie, np. http://twoj-host.
+const BUILD_DEFAULT_SERVER = String(
+  (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_BRAIN_SERVER ?? ""
+).trim();
+
 const CANDIDATE_SERVERS: string[] = (() => {
   const custom = localStorage.getItem("brain_servers");
   if (custom) {
@@ -16,12 +22,20 @@ const CANDIDATE_SERVERS: string[] = (() => {
     } catch {}
   }
   return [
+    ...(BUILD_DEFAULT_SERVER ? [BUILD_DEFAULT_SERVER] : []),
     "http://127.0.0.1:8777",
     "http://brain.local:8777"
   ];
 })();
 
 const BRAIN_API_TOKEN = localStorage.getItem("brain_api_token") || "";
+
+// Nazwa urządzenia widoczna w stopce — konfigurowana w ⚙️ (albo z builda),
+// nigdy zaszyta: każda stacja ma inną (laptop, Mac, telefon).
+const BUILD_DEFAULT_DEVICE = String(
+  (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_BRAIN_DEVICE ?? ""
+).trim();
+const DEVICE_LABEL = localStorage.getItem("brain_device_label") || BUILD_DEFAULT_DEVICE || "Twoje urządzenie";
 const FEED_CACHE_KEY = "brain_companion_feed_cache";
 let activeServerUrl = CANDIDATE_SERVERS[0];
 let isFlushingQueue = false;
@@ -65,6 +79,60 @@ const noteModalTitle = document.getElementById("note-modal-title") as HTMLElemen
 const noteModalBody = document.getElementById("note-modal-body") as HTMLElement;
 const noteCloseBtn = document.getElementById("note-close-btn") as HTMLButtonElement;
 const noteOpenBrowserBtn = document.getElementById("note-open-browser-btn") as HTMLButtonElement;
+
+// Ustawienia połączenia: bez tego okna nie da się wskazać serwera w tailnecie
+// właściciela instalacji (domyślne adresy to localhost/brain.local).
+const settingsBtn = document.getElementById("settings-btn") as HTMLButtonElement;
+const settingsModal = document.getElementById("settings-modal") as HTMLElement;
+const settingsBackdrop = document.getElementById("settings-backdrop") as HTMLElement;
+const settingsCloseBtn = document.getElementById("settings-close-btn") as HTMLButtonElement;
+const settingsSaveBtn = document.getElementById("settings-save-btn") as HTMLButtonElement;
+const settingsServerInput = document.getElementById("settings-server") as HTMLInputElement;
+const settingsTokenInput = document.getElementById("settings-token") as HTMLInputElement;
+const settingsDeviceInput = document.getElementById("settings-device") as HTMLInputElement;
+const deviceLabelEl = document.getElementById("device-label") as HTMLElement | null;
+
+function normalizeServerUrl(raw: string): string {
+  let url = raw.trim();
+  if (!url) return "";
+  if (!/^https?:\/\//i.test(url)) url = `http://${url}`;
+  return url.replace(/\/+$/, "");
+}
+
+function openSettings() {
+  settingsServerInput.value = activeServerUrl || CANDIDATE_SERVERS[0] || "";
+  settingsTokenInput.value = localStorage.getItem("brain_api_token") || "";
+  settingsDeviceInput.value = localStorage.getItem("brain_device_label") || BUILD_DEFAULT_DEVICE;
+  settingsModal.classList.remove("hidden");
+  settingsModal.setAttribute("aria-hidden", "false");
+}
+
+function closeSettings() {
+  settingsModal.classList.add("hidden");
+  settingsModal.setAttribute("aria-hidden", "true");
+}
+
+function saveSettings() {
+  const url = normalizeServerUrl(settingsServerInput.value);
+  if (!url) {
+    settingsServerInput.focus();
+    return;
+  }
+  localStorage.setItem("brain_servers", JSON.stringify([url]));
+  localStorage.setItem("brain_api_token", settingsTokenInput.value.trim());
+  localStorage.setItem("brain_device_label", settingsDeviceInput.value.trim());
+  window.location.reload();
+}
+
+settingsBtn.addEventListener("click", openSettings);
+settingsCloseBtn.addEventListener("click", closeSettings);
+settingsBackdrop.addEventListener("click", closeSettings);
+settingsSaveBtn.addEventListener("click", saveSettings);
+settingsServerInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") saveSettings();
+});
+
+if (deviceLabelEl) deviceLabelEl.textContent = DEVICE_LABEL;
 
 async function openExternalLink(url: string) {
   if (!url) return;

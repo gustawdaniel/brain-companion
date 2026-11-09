@@ -34,6 +34,12 @@
             </svg>
             <span id="queue-count">0</span>
           </button>
+          <button id="settings-btn" class="icon-btn" title="Ustawienia połączenia" aria-label="Ustawienia połączenia">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
           <div class="server-badge" id="server-status-badge">
             <span class="status-dot online" id="server-status-dot"></span>
             <span class="server-name" id="server-label">Łączenie...</span>
@@ -140,12 +146,36 @@
             <span id="system-status">Brain Ingest: Gotowy</span>
           </div>
           <div class="telemetry-item">
-            <span id="device-label">RedMagic 9 Pro</span>
+            <span id="device-label">Twoje urządzenie</span>
           </div>
         </div>
       </footer>
 
       <!-- In-App Note Viewer Modal / Bottom Sheet -->
+      <!-- Settings Modal: adres serwera w sieci właściciela instalacji -->
+      <div id="settings-modal" class="settings-modal hidden" aria-hidden="true">
+        <div class="settings-backdrop" id="settings-backdrop"></div>
+        <div class="settings-panel">
+          <header class="settings-head">
+            <h3>Połączenie z serwerem</h3>
+            <button id="settings-close-btn" class="icon-btn" title="Zamknij">✕</button>
+          </header>
+          <p class="settings-hint">
+            Adres silnika GTD w Twojej sieci, np. <code>http://twoj-host</code>
+            (nazwa serwera z panelu <code>/setup</code>, krok 2).
+          </p>
+          <label class="settings-label" for="settings-server">Adres serwera</label>
+          <input id="settings-server" type="text" placeholder="http://twoj-host" autocomplete="off" />
+          <label class="settings-label" for="settings-device">Nazwa urządzenia</label>
+          <input id="settings-device" type="text" placeholder="np. laptop-michal" autocomplete="off" />
+          <label class="settings-label" for="settings-token">Token API (jeśli serwer go wymaga)</label>
+          <input id="settings-token" type="password" placeholder="X-Brain-Token" autocomplete="off" />
+          <div class="settings-actions">
+            <button id="settings-save-btn" class="settings-save">Zapisz i połącz</button>
+          </div>
+        </div>
+      </div>
+
       <div id="note-modal" class="note-modal hidden" aria-hidden="true">
         <div class="note-modal-backdrop" id="note-modal-backdrop"></div>
         <div class="note-modal-sheet">
