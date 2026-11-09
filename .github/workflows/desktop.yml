@@ -45,12 +45,6 @@ jobs:
             os: ubuntu-22.04
             args: ''
 
-    # Sekrety Apple wystawiamy przez env, bo w `if:` nie wolno używać `secrets.*`
-    # (dozwolone konteksty: env, github, inputs, job, matrix, needs, runner, steps, strategy, vars).
-    env:
-      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-
     steps:
       - uses: actions/checkout@v4
 
@@ -121,6 +115,8 @@ jobs:
             echo "ℹ️  Build macOS (.dmg) zostanie ukończony jako niesygnowany. Po dodaniu sekretów przez Michała kolejne wydanie zostanie automatycznie podpisane i znotaryzowane."
           else
             echo "✓ Certyfikat Apple Developer ID jest dostępny."
+            echo "APPLE_CERTIFICATE=$RAW_CERT" >> "$GITHUB_ENV"
+            echo "APPLE_CERTIFICATE_PASSWORD=$RAW_CERT_PASS" >> "$GITHUB_ENV"
             [ -n "$RAW_SIGNING_ID" ] && echo "APPLE_SIGNING_IDENTITY=$RAW_SIGNING_ID" >> "$GITHUB_ENV"
 
             if [ -n "$MISSING_NOTARY" ]; then
@@ -133,29 +129,6 @@ jobs:
             fi
           fi
 
-      - name: Konfiguracja Keychain dla Apple Code Signing (macOS)
-        if: startsWith(matrix.os, 'macos') && env.APPLE_CERTIFICATE != '' && env.APPLE_CERTIFICATE_PASSWORD != ''
-        shell: bash
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          set -euo pipefail
-          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
-          KEYCHAIN_PASSWORD="$(uuidgen)"
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-          CERT_PATH="$RUNNER_TEMP/cert.p12"
-          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERT_PATH"
-          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
-          rm -f "$CERT_PATH"
-          echo "✓ Zaimportowano certyfikat Apple do keychaina runnera."
-
       - name: Build (Tauri)
         shell: bash
         run: |
@@ -166,12 +139,6 @@ jobs:
           else
             npx tauri build ${{ matrix.args }}
           fi
-
-      - name: Sprzątanie Keychain (macOS)
-        if: always() && startsWith(matrix.os, 'macos') && env.APPLE_CERTIFICATE != ''
-        shell: bash
-        run: |
-          security delete-keychain "$RUNNER_TEMP/build.keychain" 2>/dev/null || true
 
       - name: Zbierz pliki instalacyjne
         shell: bash

@@ -170,6 +170,12 @@
           <input id="settings-device" type="text" placeholder="np. laptop-michal" autocomplete="off" />
           <label class="settings-label" for="settings-token">Token API (jeśli serwer go wymaga)</label>
           <input id="settings-token" type="password" placeholder="X-Brain-Token" autocomplete="off" />
+          <label class="settings-label" for="settings-connect">Kod połączenia z <code>/setup</code> (opcjonalnie)</label>
+          <input id="settings-connect" type="text" placeholder="brain://connect?server=..." autocomplete="off" />
+          <p class="settings-hint" id="settings-connect-hint">
+            Wklej kod z karty <strong>Brain Companion</strong> w <code>/setup</code> —
+            adres, token i nazwa urządzenia wypełnią się same.
+          </p>
           <div class="settings-actions">
             <button id="settings-save-btn" class="settings-save">Zapisz i połącz</button>
           </div>

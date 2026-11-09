@@ -1,12 +1,12 @@
 {
   "target": "brain-companion",
   "repo": "gustawdaniel/brain-companion",
-  "monorepo_sha": "fd0ec32fb864b9bf0007f63a341973ace3159b40",
+  "monorepo_sha": "9a04b1078107569dd7e439411125d7619ed9118c",
   "monorepo_tag": null,
   "monorepo_ref": "HEAD",
-  "timestamp": "2026-11-09T21:16:07.488098+00:00",
+  "timestamp": "2026-11-09T21:28:09.919031+00:00",
   "files_count": 104,
-  "total_size_bytes": 6218138,
+  "total_size_bytes": 6218802,
   "files": [
     {
       "path": ".gitignore",
@@ -35,8 +35,8 @@
     },
     {
       "path": "index.html",
-      "size": 10647,
-      "sha256": "b6295a09e67f2219641b72166ae900d25e09bfc98055ba487f6f20eaab9dfaf4"
+      "size": 11119,
+      "sha256": "6141261affc733aba71ddbf13fad085f7bf08aea255086b00d1b2ec9aaee3c5b"
     },
     {
       "path": "package-lock.json",
@@ -70,8 +70,8 @@
     },
     {
       "path": ".github/workflows/desktop.yml",
-      "size": 11213,
-      "sha256": "b8356e6b159948e00d0b70e9e45fcb0a1a6cb3996aa9329e82cde17fb9768d78"
+      "size": 9502,
+      "sha256": "bff6c5f8debebef31ee4eeb79b63ff116d8d8ebf20418e60fcd1ac6f97f8df54"
     },
     {
       "path": "src-tauri/.gitignore",
@@ -500,8 +500,8 @@
     },
     {
       "path": "src/main.ts",
-      "size": 29305,
-      "sha256": "273bbbb7391a337d4a3c8caaee2859d0223f5cd6b55843a1c4da5a5683c93b6f"
+      "size": 31208,
+      "sha256": "e35dd9e344c2e50004c867c2f515009979594d9696e23214fc63af25fc0c8c80"
     },
     {
       "path": "src/offlineQueue.ts",

@@ -90,6 +90,8 @@ const settingsSaveBtn = document.getElementById("settings-save-btn") as HTMLButt
 const settingsServerInput = document.getElementById("settings-server") as HTMLInputElement;
 const settingsTokenInput = document.getElementById("settings-token") as HTMLInputElement;
 const settingsDeviceInput = document.getElementById("settings-device") as HTMLInputElement;
+const settingsConnectInput = document.getElementById("settings-connect") as HTMLInputElement | null;
+const settingsConnectHint = document.getElementById("settings-connect-hint") as HTMLElement | null;
 const deviceLabelEl = document.getElementById("device-label") as HTMLElement | null;
 
 function normalizeServerUrl(raw: string): string {
@@ -99,10 +101,29 @@ function normalizeServerUrl(raw: string): string {
   return url.replace(/\/+$/, "");
 }
 
+// Kod połączenia z /setup: brain://connect?server=…&token=…&device=…
+// Wklejenie go wypełnia pola, żeby nie przepisywać ręcznie adresu i tokenu.
+function applyConnectCode(raw: string): boolean {
+  const text = raw.trim();
+  if (!text) return false;
+  const match = /^(?:brain:\/\/connect|https?:\/\/[^\s]*[?&]connect=1)\??(.*)$/i.exec(text);
+  const query = match ? match[1] : text.replace(/^[^?]*\?/, "");
+  const params = new URLSearchParams(query);
+  const server = params.get("server") ?? params.get("s") ?? "";
+  const token = params.get("token") ?? params.get("t") ?? "";
+  const device = params.get("device") ?? params.get("d") ?? "";
+  if (!server && !token && !device) return false;
+  if (server) settingsServerInput.value = normalizeServerUrl(server);
+  if (token) settingsTokenInput.value = token;
+  if (device) settingsDeviceInput.value = device;
+  return true;
+}
+
 function openSettings() {
   settingsServerInput.value = activeServerUrl || CANDIDATE_SERVERS[0] || "";
   settingsTokenInput.value = localStorage.getItem("brain_api_token") || "";
   settingsDeviceInput.value = localStorage.getItem("brain_device_label") || BUILD_DEFAULT_DEVICE;
+  if (settingsConnectInput) settingsConnectInput.value = "";
   settingsModal.classList.remove("hidden");
   settingsModal.setAttribute("aria-hidden", "false");
 }
@@ -128,6 +149,26 @@ settingsBtn.addEventListener("click", openSettings);
 settingsCloseBtn.addEventListener("click", closeSettings);
 settingsBackdrop.addEventListener("click", closeSettings);
 settingsSaveBtn.addEventListener("click", saveSettings);
+
+// Kod połączenia: wklejenie (Ctrl+V) od razu wypełnia pola; „Zapisz” zostaje
+// decyzją użytkownika, żeby nie nadpisać konfiguracji bez jego wiedzy.
+if (settingsConnectInput) {
+  const onConnectCode = () => {
+    const ok = applyConnectCode(settingsConnectInput.value);
+    if (ok) {
+      settingsConnectInput.value = "";
+      if (settingsConnectHint) {
+        settingsConnectHint.textContent = "✓ Kod wczytany — sprawdź pola i zapisz.";
+      }
+    }
+  };
+  settingsConnectInput.addEventListener("paste", () => window.setTimeout(onConnectCode, 0));
+  settingsConnectInput.addEventListener("change", onConnectCode);
+  settingsConnectInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") onConnectCode();
+  });
+}
+
 settingsServerInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") saveSettings();
 });
