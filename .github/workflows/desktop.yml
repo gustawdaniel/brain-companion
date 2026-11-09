@@ -1,8 +1,10 @@
-name: Build desktop bundles
+name: Build app bundles
 
 # Ten plik jedzie razem z aplikacją do repozytorium gustawdaniel/brain-companion
-# (publish/targets.toml → flatten), więc buduje się TYLKO wtedy, gdy wydajemy
-# nową wersję Brain Companion — nie przy każdej zmianie w monorepo.
+# (publish/targets.toml → flatten). Tag pojawia się TU dopiero wtedy, gdy zmieniły
+# się pliki aplikacji — publish/push.sh porównuje drzewo bez manifestu monorepo
+# i przy samym bumpie wersji monorepo nie tworzy nowego wydania. Dzięki temu
+# nie budujemy DMG/AppImage bez powodu.
 on:
   push:
     tags:
@@ -15,7 +17,7 @@ on:
         default: false
 
 concurrency:
-  group: desktop-${{ github.ref }}
+  group: app-bundles-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
@@ -26,24 +28,28 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
-  bundle:
+  desktop:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          # macOS: jeden uniwersalny DMG (Apple Silicon + Intel).
           - name: macOS (universal, .dmg)
             os: macos-latest
             args: '--target universal-apple-darwin'
 
-          - name: Windows (x64, .msi/.exe)
-            os: windows-latest
-            args: ''
-
+          # Linux: AppImage + .deb (x64).
           - name: Linux (x64, .AppImage/.deb)
             os: ubuntu-22.04
             args: ''
+
+    # Sekrety Apple wystawiamy przez env, bo w `if:` nie wolno używać `secrets.*`
+    # (dozwolone konteksty: env, github, inputs, job, matrix, needs, runner, steps, strategy, vars).
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -71,16 +77,110 @@ jobs:
       - name: Zależności frontendu
         run: npm ci
 
+      # Wersja aplikacji = wersja wydania (tag v2026.11.2 → 2026.11.2), żeby
+      # nazwy plików zgadzały się z tagiem, a nie zostawały na 0.1.0 z repo.
+      - name: Wersja z tagu wydania
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            printf '{"version":"%s"}\n' "$VERSION" > src-tauri/tauri.release.conf.json
+            echo "config=src-tauri/tauri.release.conf.json" >> "$GITHUB_OUTPUT"
+            echo "📌 Wersja aplikacji: $VERSION"
+          else
+            echo "config=" >> "$GITHUB_OUTPUT"
+            echo "ℹ️  Uruchomienie ręczne (bez tagu) — zostaje wersja z tauri.conf.json."
+          fi
+
+      - name: Sprawdź poświadczenia Apple Code Signing & Notarization (macOS)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        env:
+          RAW_CERT: ${{ secrets.APPLE_CERTIFICATE }}
+          RAW_CERT_PASS: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          RAW_SIGNING_ID: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          RAW_APPLE_ID: ${{ secrets.APPLE_ID }}
+          RAW_APPLE_PASS: ${{ secrets.APPLE_PASSWORD }}
+          RAW_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          echo "=== Sprawdzanie poświadczeń Apple Code Signing & Notarization ==="
+          MISSING_SIGN=""
+          MISSING_NOTARY=""
+
+          [ -n "$RAW_CERT" ] || MISSING_SIGN="$MISSING_SIGN APPLE_CERTIFICATE"
+          [ -n "$RAW_CERT_PASS" ] || MISSING_SIGN="$MISSING_SIGN APPLE_CERTIFICATE_PASSWORD"
+
+          [ -n "$RAW_APPLE_ID" ] || MISSING_NOTARY="$MISSING_NOTARY APPLE_ID"
+          [ -n "$RAW_APPLE_PASS" ] || MISSING_NOTARY="$MISSING_NOTARY APPLE_PASSWORD"
+          [ -n "$RAW_TEAM_ID" ] || MISSING_NOTARY="$MISSING_NOTARY APPLE_TEAM_ID"
+
+          if [ -n "$MISSING_SIGN" ]; then
+            echo "::warning title=Brak certyfikatu Apple (unsigned build)::Pominięto podpisywanie i notaryzację macOS (brakujące sekrety:$MISSING_SIGN). Instalator .dmg powstanie bez podpisu deweloperskiego."
+            echo "ℹ️  Build macOS (.dmg) zostanie ukończony jako niesygnowany. Po dodaniu sekretów przez Michała kolejne wydanie zostanie automatycznie podpisane i znotaryzowane."
+          else
+            echo "✓ Certyfikat Apple Developer ID jest dostępny."
+            [ -n "$RAW_SIGNING_ID" ] && echo "APPLE_SIGNING_IDENTITY=$RAW_SIGNING_ID" >> "$GITHUB_ENV"
+
+            if [ -n "$MISSING_NOTARY" ]; then
+              echo "::warning title=Brak danych do notaryzacji Apple::Aplikacja zostanie podpisana certyfikatem, ale pominięto notaryzację (brakujące sekrety:$MISSING_NOTARY)."
+            else
+              echo "✓ Poświadczenia do notaryzacji Apple są skonfigurowane."
+              echo "APPLE_ID=$RAW_APPLE_ID" >> "$GITHUB_ENV"
+              echo "APPLE_PASSWORD=$RAW_APPLE_PASS" >> "$GITHUB_ENV"
+              echo "APPLE_TEAM_ID=$RAW_TEAM_ID" >> "$GITHUB_ENV"
+            fi
+          fi
+
+      - name: Konfiguracja Keychain dla Apple Code Signing (macOS)
+        if: startsWith(matrix.os, 'macos') && env.APPLE_CERTIFICATE != '' && env.APPLE_CERTIFICATE_PASSWORD != ''
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          CERT_PATH="$RUNNER_TEMP/cert.p12"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERT_PATH"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+          rm -f "$CERT_PATH"
+          echo "✓ Zaimportowano certyfikat Apple do keychaina runnera."
+
       - name: Build (Tauri)
-        run: npx tauri build ${{ matrix.args }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONF="${{ steps.version.outputs.config }}"
+          if [[ -n "$CONF" ]]; then
+            npx tauri build --config "$CONF" ${{ matrix.args }}
+          else
+            npx tauri build ${{ matrix.args }}
+          fi
+
+      - name: Sprzątanie Keychain (macOS)
+        if: always() && startsWith(matrix.os, 'macos') && env.APPLE_CERTIFICATE != ''
+        shell: bash
+        run: |
+          security delete-keychain "$RUNNER_TEMP/build.keychain" 2>/dev/null || true
 
       - name: Zbierz pliki instalacyjne
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist-release
+          # Windows nie jest wspierany — tylko macOS (.dmg) i Linux (.AppImage/.deb).
           find src-tauri/target -type f -path '*/bundle/*' \
-            \( -name '*.dmg' -o -name '*.msi' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \) \
+            \( -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' \) \
             -exec cp -v {} dist-release/ \;
           if [ -z "$(ls -A dist-release)" ]; then
             echo "BŁĄD: build nie wyprodukował żadnego pliku instalacyjnego" >&2
@@ -106,6 +206,76 @@ jobs:
           # możemy być pierwsi, więc zakładamy go, jeśli jeszcze nie istnieje.
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" --title "Brain Companion $TAG" \
-              --notes "Wydanie Brain Companion $TAG (pliki instalacyjne dla macOS, Windows i Linux)."
+              --notes "Wydanie Brain Companion $TAG (macOS .dmg, Linux .AppImage/.deb, iOS .app bez podpisu)."
+          fi
+          gh release upload "$TAG" dist-release/* --clobber
+
+  # iOS: bez certyfikatu Apple podpisu nie zrobimy, więc budujemy `.app` bez
+  # podpisu — instaluje się przez Xcode / Apple Configurator na własnym telefonie.
+  # Gotowy IPA do App Store/TestFlight wymaga konta Apple Developer i sekretów
+  # (certyfikat + provisioning profile) — wtedy zmieniamy --no-sign na
+  # --export-method app-store-connect.
+  ios:
+    name: iOS (unsigned .app)
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Zależności frontendu
+        run: npm ci
+
+      - name: Projekt Xcode dla iOS (gen/apple)
+        run: npx tauri ios init --ci
+
+      - name: Build (bez podpisu)
+        run: npx tauri ios build --ci --no-sign --target aarch64
+
+      - name: Zbierz pakiet .app
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist-release
+          while IFS= read -r app; do
+            name="$(basename "$app" | tr ' ' '-')"
+            ditto -c -k --sequesterRsrc --keepParent "$app" "dist-release/${name}-ios-unsigned.zip"
+          done < <(find src-tauri/gen/apple/build -type d -name '*.app' -maxdepth 6)
+          if [ -z "$(ls -A dist-release)" ]; then
+            echo "⚠️  iOS: build nie zwrócił pakietu .app — sprawdź log powyżej." >&2
+            echo "    (Podpisany IPA wymaga konta Apple Developer; bez niego zostaje" >&2
+            echo "     instalacja z Xcode na własnym urządzeniu.)" >&2
+            exit 1
+          fi
+          ls -la dist-release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brain-companion-ios
+          path: dist-release/*
+          if-no-files-found: warn
+
+      - name: Dołącz pakiet do wydania
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.upload_to_release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "Brain Companion $TAG" --notes "Wydanie Brain Companion $TAG."
           fi
           gh release upload "$TAG" dist-release/* --clobber

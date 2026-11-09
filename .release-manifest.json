@@ -1,17 +1,17 @@
 {
   "target": "brain-companion",
   "repo": "gustawdaniel/brain-companion",
-  "monorepo_sha": "c5a76494eab28b2cbeff5b196aae3c967ace3bf1",
-  "monorepo_tag": "v2026.11.2",
-  "monorepo_ref": "v2026.11.2",
-  "timestamp": "2026-11-09T20:23:38.852159+00:00",
+  "monorepo_sha": "fd0ec32fb864b9bf0007f63a341973ace3159b40",
+  "monorepo_tag": null,
+  "monorepo_ref": "HEAD",
+  "timestamp": "2026-11-09T21:16:07.488098+00:00",
   "files_count": 104,
-  "total_size_bytes": 6205715,
+  "total_size_bytes": 6218138,
   "files": [
     {
       "path": ".gitignore",
-      "size": 598,
-      "sha256": "890e6d3b503995f4b73287e4bcf9f191ec0e03909260a3dc436179031064710c"
+      "size": 802,
+      "sha256": "cec49ba07386a389bd2a4dcbb5da9cd98b391a216bb231b8f9ca8d617c8863ae"
     },
     {
       "path": "CONTRIBUTING.md",
@@ -25,8 +25,8 @@
     },
     {
       "path": "README.md",
-      "size": 376,
-      "sha256": "04e220326dcbd358c6f03cd190f279d72f9b0a451a8225da3fd55be39f7bedf8"
+      "size": 4798,
+      "sha256": "37c6eef7c86b8ccd2d54f108db145a194206a652915e55835170914d84c51bb4"
     },
     {
       "path": "SECURITY.md",
@@ -70,8 +70,8 @@
     },
     {
       "path": ".github/workflows/desktop.yml",
-      "size": 3416,
-      "sha256": "f4c148a8ccc9ec5ebaefcc9b1be313efa59529974256b9aed59927f4267a1b84"
+      "size": 11213,
+      "sha256": "b8356e6b159948e00d0b70e9e45fcb0a1a6cb3996aa9329e82cde17fb9768d78"
     },
     {
       "path": "src-tauri/.gitignore",

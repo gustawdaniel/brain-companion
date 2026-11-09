@@ -32,6 +32,11 @@ src-tauri/gen/android/.tauri/
 src-tauri/gen/android/captures/
 src-tauri/gen/android/*.iml
 
+# iOS: projekt Xcode generowany przez `tauri ios init` w CI (nie trzymamy w repo)
+src-tauri/gen/apple/
+# wersja nadpisywana w CI z tagu wydania (`tauri build --config`)
+src-tauri/tauri.release.conf.json
+
 # konfiguracje klientów (identyfikator aplikacji, zespół Apple)
 site/*.conf.json
 !site/example.conf.json
