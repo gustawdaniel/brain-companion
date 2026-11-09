@@ -1,8 +1,12 @@
 {
   "target": "brain-companion",
   "repo": "gustawdaniel/brain-companion",
-  "files_count": 113,
-  "total_size_bytes": 6213635,
+  "monorepo_sha": "9caf44e79878d89ce7b9b3b1b3c2b94594c58a90",
+  "monorepo_tag": "v2026.11.1",
+  "monorepo_ref": "v2026.11.1",
+  "timestamp": "2026-11-09T17:02:27.304145+00:00",
+  "files_count": 103,
+  "total_size_bytes": 6194913,
   "files": [
     {
       "path": ".gitignore",
@@ -26,8 +30,8 @@
     },
     {
       "path": "SECURITY.md",
-      "size": 863,
-      "sha256": "518f69d89ff25f7cdcfbaed937df7ead83ce5970739b443977958d18321e589f"
+      "size": 861,
+      "sha256": "1f5d5b6fc6e469ef70ad958767e44284b8520ac8ad4e34c151b34e1557d756e1"
     },
     {
       "path": "index.html",
@@ -295,16 +299,6 @@
       "sha256": "9b22e776e4a09b933785f130924d65ae24d80e57ec2da494737fe779761e5aeb"
     },
     {
-      "path": "src-tauri/gen/android/buildSrc/.gradle/buildOutputCleanup/buildOutputCleanup.lock",
-      "size": 17,
-      "sha256": "5d74c505482c77e3e396711137c362d4986385db92b0f0dfe3dd7dfe70fe726e"
-    },
-    {
-      "path": "src-tauri/gen/android/buildSrc/.gradle/buildOutputCleanup/cache.properties",
-      "size": 52,
-      "sha256": "5f7e37766bdbc920e0b66aa209221fee9401a42f4b01fe5bd3b6cdcb10b81488"
-    },
-    {
       "path": "src-tauri/gen/android/buildSrc/src/main/java/com/daniel/braincompanion/kotlin/BuildTask.kt",
       "size": 2381,
       "sha256": "a1cf46b967aadf941f6673162743190c411eff0c6aeac7c975f2c46ab0a8686d"
@@ -313,46 +307,6 @@
       "path": "src-tauri/gen/android/buildSrc/src/main/java/com/daniel/braincompanion/kotlin/RustPlugin.kt",
       "size": 3388,
       "sha256": "ba97577f2cf2b123eddd332662844d2b93a2ee589be65f3843bc7de4ea5b7ba7"
-    },
-    {
-      "path": "src-tauri/gen/android/.gradle/9.6.1/gc.properties",
-      "size": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    {
-      "path": "src-tauri/gen/android/.gradle/9.6.1/fileChanges/last-build.bin",
-      "size": 1,
-      "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
-    },
-    {
-      "path": "src-tauri/gen/android/.gradle/9.6.1/checksums/checksums.lock",
-      "size": 17,
-      "sha256": "815006415830b2162d69d9d419f3ee80dd4d39a9f9f2cf2767d27b926de513f7"
-    },
-    {
-      "path": "src-tauri/gen/android/.gradle/9.6.1/fileHashes/fileHashes.bin",
-      "size": 18547,
-      "sha256": "192904e9cc97b0305df17b243dc6c7e6174e2559571c815000fa42a534b53103"
-    },
-    {
-      "path": "src-tauri/gen/android/.gradle/9.6.1/fileHashes/fileHashes.lock",
-      "size": 17,
-      "sha256": "1dffeb68a4ca7382841af7a470231e857ff259354a0bdbb454415e986f244756"
-    },
-    {
-      "path": "src-tauri/gen/android/.gradle/vcs-1/gc.properties",
-      "size": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    {
-      "path": "src-tauri/gen/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock",
-      "size": 17,
-      "sha256": "abab10cb5022b5151aed8f9077b8836b49ca0c0f39dd48398a54fb6a93282f86"
-    },
-    {
-      "path": "src-tauri/gen/android/.gradle/buildOutputCleanup/cache.properties",
-      "size": 52,
-      "sha256": "5f7e37766bdbc920e0b66aa209221fee9401a42f4b01fe5bd3b6cdcb10b81488"
     },
     {
       "path": "src-tauri/icons/128x128.png",
