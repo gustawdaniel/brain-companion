@@ -1,4 +1,4 @@
-package com.daniel.braincompanion
+package com.brain.companion
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

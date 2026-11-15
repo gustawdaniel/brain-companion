@@ -161,15 +161,16 @@
             <button id="settings-close-btn" class="icon-btn" title="Zamknij">✕</button>
           </header>
           <p class="settings-hint">
-            Adres silnika GTD w Twojej sieci, np. <code>http://twoj-host</code>
-            (nazwa serwera z panelu <code>/setup</code>, krok 2).
+            Adres silnika GTD w Twojej sieci, np. <code>http://twoj-host</code> — bez portu,
+            ruch idzie przez bramkę na porcie 80 (nazwę serwera i token znajdziesz w
+            <code>/setup</code>, karta „Brain Companion”).
           </p>
-          <label class="settings-label" for="settings-server">Adres serwera</label>
+          <label class="settings-label" for="settings-server">Adres serwera (bez portu)</label>
           <input id="settings-server" type="text" placeholder="http://twoj-host" autocomplete="off" />
           <label class="settings-label" for="settings-device">Nazwa urządzenia</label>
           <input id="settings-device" type="text" placeholder="np. laptop-michal" autocomplete="off" />
-          <label class="settings-label" for="settings-token">Token API (jeśli serwer go wymaga)</label>
-          <input id="settings-token" type="password" placeholder="X-Brain-Token" autocomplete="off" />
+          <label class="settings-label" for="settings-token">Token API (tylko gdy serwer go wymaga)</label>
+          <input id="settings-token" type="password" placeholder="token z /setup — może zostać pusty" autocomplete="off" />
           <label class="settings-label" for="settings-connect">Kod połączenia z <code>/setup</code> (opcjonalnie)</label>
           <input id="settings-connect" type="text" placeholder="brain://connect?server=..." autocomplete="off" />
           <p class="settings-hint" id="settings-connect-hint">

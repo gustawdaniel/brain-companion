@@ -38,6 +38,43 @@ const BUILD_DEFAULT_DEVICE = String(
 const DEVICE_LABEL = localStorage.getItem("brain_device_label") || BUILD_DEFAULT_DEVICE || "Twoje urządzenie";
 const FEED_CACHE_KEY = "brain_companion_feed_cache";
 let activeServerUrl = CANDIDATE_SERVERS[0];
+
+// Odczyt (notatki, feed) działa tylko w tailnecie: publiczna brama (np. api.*)
+// wyłącznie przyjmuje dane i na ścieżki odczytu odpowiada 404. Adres tailnetu
+// przychodzi w kodzie połączenia (`read=`); gdy aktywny serwer sam jest
+// prywatny (http://…), czytamy z niego. Token nigdy nie jedzie w URL-u.
+let pendingReadServer = "";
+
+// Brama publiczna (`https://api.…`, `https://geo.…`) nie serwuje odczytu, więc
+// budowanie z niej linków do notatek dawało 404 — dokładnie tak wyglądał błąd
+// „link do notatki nie działa, bo prowadzi na api.gustawdaniel.com”. Prywatne
+// są tylko adresy http:// (tailnet, LAN, lokalny dev) oraz HTTPS w tailnecie:
+// `*.ts.net` i surowe adresy CGNAT tailnetu (RFC 6598).
+function isPrivateReadBase(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:") return true;
+    if (parsed.protocol !== "https:") return false;
+    const host = parsed.hostname.toLowerCase();
+    if (host.endsWith(".ts.net")) return true;
+    const octets = host.split(".").map((part) => Number(part));
+    if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
+    return octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127;
+  } catch {
+    return false;
+  }
+}
+
+function readServerUrl(): string {
+  const active = (activeServerUrl || "").trim();
+  if (isPrivateReadBase(active)) return active;
+  const stored = (localStorage.getItem("brain_read_server") || "").trim();
+  return isPrivateReadBase(stored) ? stored : "";
+}
+
+const TAILNET_ONLY_MSG = "Notatki i historia są dostępne tylko w tailnecie. Włącz Tailscale albo wklej ponownie kod połączenia z /setup.";
+const PUBLIC_READ_MSG = "Kod połączenia podał publiczną bramę (https://…) jako adres odczytu. Notatki czyta się w tailnecie — wklej kod z /setup jeszcze raz (niesie read=http://<host>).";
 let isFlushingQueue = false;
 
 // DOM Elements
@@ -112,6 +149,11 @@ function applyConnectCode(raw: string): boolean {
   const server = params.get("server") ?? params.get("s") ?? "";
   const token = params.get("token") ?? params.get("t") ?? "";
   const device = params.get("device") ?? params.get("d") ?? "";
+  const readParam = normalizeServerUrl(params.get("read") ?? "");
+  pendingReadServer = isPrivateReadBase(readParam) ? readParam : "";
+  if (settingsConnectHint && readParam && !pendingReadServer) {
+    settingsConnectHint.textContent = PUBLIC_READ_MSG;
+  }
   if (!server && !token && !device) return false;
   if (server) settingsServerInput.value = normalizeServerUrl(server);
   if (token) settingsTokenInput.value = token;
@@ -142,6 +184,13 @@ function saveSettings() {
   localStorage.setItem("brain_servers", JSON.stringify([url]));
   localStorage.setItem("brain_api_token", settingsTokenInput.value.trim());
   localStorage.setItem("brain_device_label", settingsDeviceInput.value.trim());
+  if (pendingReadServer) localStorage.setItem("brain_read_server", pendingReadServer);
+  // Sprzątanie starych wpisów: publiczna brama w `brain_read_server` dawała linki
+  // do notatek na api.*, czyli 404. Taki adres nie ma prawa zostać w konfiguracji.
+  const storedRead = (localStorage.getItem("brain_read_server") || "").trim();
+  if (storedRead && !isPrivateReadBase(storedRead)) {
+    localStorage.removeItem("brain_read_server");
+  }
   window.location.reload();
 }
 
@@ -232,7 +281,8 @@ async function flushOfflineQueue() {
     try {
       const formData = new FormData();
       if (item.type === 'audio' && item.blob) {
-        formData.append("file", item.blob, "thought.webm");
+        const audioExt = (item.blob.type || item.mimeType || "").includes("mp4") ? "mp4" : "webm";
+        formData.append("file", item.blob, `thought.${audioExt}`);
       } else if (item.type === 'text' && item.content) {
         formData.append("text", item.content);
       } else {
@@ -342,10 +392,16 @@ function drawWaveform() {
 // Start Recording
 async function startRecording() {
   try {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Interfejs getUserMedia nie jest dostępny w tym środowisku.");
+    }
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     
     // Audio Context for live visualizer
     audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (audioContext.state === "suspended") {
+      await audioContext.resume();
+    }
     const source = audioContext.createMediaStreamSource(stream);
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 128;
@@ -458,8 +514,9 @@ async function uploadAudioThought(blob: Blob) {
   bannerStage.textContent = "Groq Whisper STT...";
   if (bannerDetail) bannerDetail.textContent = "Wysyłanie do silnika GTD...";
   
+  const audioExt = (blob.type || "").includes("mp4") ? "mp4" : "webm";
   const formData = new FormData();
-  formData.append("file", blob, "thought.webm");
+  formData.append("file", blob, `thought.${audioExt}`);
 
   try {
     const controller = new AbortController();
@@ -614,15 +671,23 @@ async function openNoteViewer(slug: string) {
     noteModal.setAttribute("aria-hidden", "false");
   }
 
+  const readUrl = readServerUrl();
+  // Bez prywatnego adresu nie ma czego otwierać: publiczna brama odczytu nie
+  // serwuje. Przycisk chowamy, żeby nie był martwym klikiem (wcześniej nic nie
+  // robił, a przy złej konfiguracji prowadził na api.gustawdaniel.com → 404).
   if (noteOpenBrowserBtn) {
+    noteOpenBrowserBtn.classList.toggle("hidden", !readUrl);
+    noteOpenBrowserBtn.title = readUrl
+      ? `Otwórz ${readUrl}/docs/projects/${cleanSlug}`
+      : "Wymaga tailnetu — brak prywatnego adresu odczytu";
     noteOpenBrowserBtn.onclick = () => {
-      const browserUrl = `${activeServerUrl}/docs/projects/${cleanSlug}?token=${BRAIN_API_TOKEN}`;
-      openExternalLink(browserUrl);
+      if (readUrl) openExternalLink(`${readUrl}/docs/projects/${cleanSlug}`);
     };
   }
 
   try {
-    const res = await fetch(`${activeServerUrl}/api/v1/projects/${cleanSlug}/note`, {
+    if (!readUrl) throw new Error(TAILNET_ONLY_MSG);
+    const res = await fetch(`${readUrl}/api/v1/projects/${cleanSlug}/note`, {
       headers: {
         "X-Brain-Token": BRAIN_API_TOKEN
       }
@@ -642,7 +707,7 @@ async function openNoteViewer(slug: string) {
           e.preventDefault();
           const href = a.getAttribute("href");
           if (href) {
-            const finalUrl = href.startsWith("/") ? `${activeServerUrl}${href}` : href;
+            const finalUrl = href.startsWith("/") ? `${readUrl}${href}` : href;
             openExternalLink(finalUrl);
           }
         });
@@ -651,20 +716,24 @@ async function openNoteViewer(slug: string) {
   } catch (err: any) {
     console.error("Failed to load note:", err);
     if (noteModalBody) {
+      // Przycisk „Otwórz w przeglądarce” renderujemy tylko wtedy, gdy naprawdę
+      // jest dokąd otwierać — inaczej był martwym klikiem.
+      const retryButton = readUrl
+        ? `<button id="modal-retry-external-btn" class="action-link-btn primary" style="width: auto; margin: 0 auto; display: inline-flex;">
+            🌐 Otwórz w przeglądarce (${escapeHtml(readUrl)})
+          </button>`
+        : '';
       noteModalBody.innerHTML = `
         <div style="text-align: center; padding: 24px 10px;">
           <p style="color: #ef4444; margin-bottom: 8px; font-weight: 600;">Nie udało się pobrać notatek dla #${cleanSlug}.</p>
           <p style="color: #94a3b8; font-size: 12px; margin-bottom: 20px;">${escapeHtml(err.message || String(err))}</p>
-          <button id="modal-retry-external-btn" class="action-link-btn primary" style="width: auto; margin: 0 auto; display: inline-flex;">
-            🌐 Otwórz w przeglądarce
-          </button>
+          ${retryButton}
         </div>
       `;
       const retryBtn = document.getElementById("modal-retry-external-btn");
       if (retryBtn) {
         retryBtn.addEventListener("click", () => {
-          const browserUrl = `${activeServerUrl}/docs/projects/${cleanSlug}?token=${BRAIN_API_TOKEN}`;
-          openExternalLink(browserUrl);
+          if (readUrl) openExternalLink(`${readUrl}/docs/projects/${cleanSlug}`);
         });
       }
     }
@@ -707,7 +776,9 @@ async function loadRecentFeed() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3500);
 
-    const res = await fetch(`${activeServerUrl}/api/v1/recent?limit=100`, { 
+    const readUrl = readServerUrl();
+    if (!readUrl) throw new Error(TAILNET_ONLY_MSG);
+    const res = await fetch(`${readUrl}/api/v1/recent?limit=100`, { 
       signal: controller.signal,
       headers: {
         "X-Brain-Token": BRAIN_API_TOKEN

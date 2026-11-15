@@ -49,7 +49,7 @@ Gdy pojawi się konto Apple Developer, wystarczy dodać sekrety
    domena publiczna) → **Token API** → **Nazwa urządzenia** → **Zapisz**.
 
 Token to sekret Twojej instalacji — na serwerze wyciągniesz go przez
-`sudo brain-secrets get gtd.api_token`. Nie wpisuj go w miejscach publicznych;
+`brain secrets get gtd.api_token`. Nie wpisuj go w miejscach publicznych;
 QR/kod zostawiaj w swoim tailnecie.
 
 ## Budowanie ze źródeł
